@@ -1,0 +1,24 @@
+{
+  "name": "advanced-ticket-bot",
+  "version": "1.0.0",
+  "description": "Professional Discord Ticket Bot with Claim System & Logs",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "discord",
+    "ticket",
+    "bot",
+    "claim-system",
+    "logs"
+  ],
+  "author": "YourName",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "discord-html-transcripts": "^3.3.0",
+    "debug": "^4.3.4"
+  }
+}
