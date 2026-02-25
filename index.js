@@ -12,6 +12,7 @@ const {
 const CATEGORY_ID = "1465965687565455474";
 const STAFF_ROLE_ID = "1463087905156366336";
 const CLAIM_CHANNEL_ID = "1475207708910161991";
+const TRANSCRIPT_CHANNEL_ID = "PUT_TRANSCRIPT_CHANNEL_ID_HERE";
 const IMAGE_URL = "https://tenor.com/view/hatsune-miku-miku-ew-what-disgusted-gif-15627475628353335525";
 
 const client = new Client({
@@ -26,9 +27,11 @@ client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-// إرسال القائمة + الصورة فقط
+
+// ارسال القائمة
 client.on("messageCreate", async (message) => {
   if (message.content === "!ticket") {
+
     const menu = new StringSelectMenuBuilder()
       .setCustomId("ticket_select")
       .setPlaceholder("اختر السبب")
@@ -48,14 +51,19 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+
 // التفاعلات
 client.on("interactionCreate", async (interaction) => {
 
+  // ==========================
   // اختيار سبب التكت
+  // ==========================
   if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") {
+
+    await interaction.deferReply({ ephemeral: true }); // تفكير
+
     const reason = interaction.values[0];
 
-    // إنشاء التكت مخفي عن الجميع
     const channel = await interaction.guild.channels.create({
       name: `ticket-${interaction.user.id}`,
       type: ChannelType.GuildText,
@@ -65,8 +73,8 @@ client.on("interactionCreate", async (interaction) => {
       ]
     });
 
-    // زر الاستلام في روم الاستلام
     const claimChannel = interaction.guild.channels.cache.get(CLAIM_CHANNEL_ID);
+
     const claimRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`claim_${channel.id}_${interaction.user.id}_${reason}`)
@@ -79,21 +87,27 @@ client.on("interactionCreate", async (interaction) => {
       components: [claimRow]
     });
 
-    interaction.reply({ content: "...w", ephemeral: true });
+    await interaction.editReply({ content: "تم إنشاء التكت ✅" });
   }
 
-  // زر الاستلام
+
+  // ==========================
+  // استلام التكت
+  // ==========================
   if (interaction.isButton() && interaction.customId.startsWith("claim_")) {
+
+    await interaction.deferReply({ ephemeral: true }); // تفكير
+
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
-      return interaction.reply({ content: "للإدارة فقط", ephemeral: true });
+      return interaction.editReply({ content: "للإدارة فقط" });
 
     const [_, channelId, userId, reason] = interaction.customId.split("_");
     const ticketChannel = interaction.guild.channels.cache.get(channelId);
     const ticketUser = await interaction.guild.members.fetch(userId);
 
-    if (!ticketChannel) return interaction.reply({ content: "التذكرة غير موجودة", ephemeral: true });
+    if (!ticketChannel)
+      return interaction.editReply({ content: "التذكرة غير موجودة" });
 
-    // اعطاء العضو والإداري صلاحية الدخول
     await ticketChannel.permissionOverwrites.edit(ticketUser.id, {
       ViewChannel: true,
       SendMessages: true
@@ -104,44 +118,103 @@ client.on("interactionCreate", async (interaction) => {
       SendMessages: true
     });
 
-    // تعديل رسالة الاستلام لتظهر اسم الاداري
-    const updatedContent = interaction.message.content.replace("لم يتم الاستلام بعد", `${interaction.user}`);
+    const updatedContent = interaction.message.content.replace(
+      "لم يتم الاستلام بعد",
+      `${interaction.user}`
+    );
 
     const disabledRow = new ActionRowBuilder().addComponents(
       ButtonBuilder.from(interaction.message.components[0].components[0]).setDisabled(true)
     );
 
-    await interaction.update({ content: updatedContent, components: [disabledRow] });
+    await interaction.message.edit({ content: updatedContent, components: [disabledRow] });
 
-    // ارسال رسالة في التكت مع أزرار شفافه
     const actionRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId("close_ticket").setLabel("اغلاق التكت").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId("delete_ticket").setLabel("حذف التكت").setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder()
+        .setCustomId("close_ticket")
+        .setLabel("اغلاق التكت")
+        .setStyle(ButtonStyle.Secondary),
+
+      new ButtonBuilder()
+        .setCustomId("delete_ticket")
+        .setLabel("حذف التكت")
+        .setStyle(ButtonStyle.Secondary)
     );
 
     await ticketChannel.send({
-      content: ` ${ticketUser} ${interaction.user}\nالسبب: ${reason}`,
+      content: `${ticketUser} ${interaction.user}\nالسبب: ${reason}`,
       components: [actionRow]
     });
+
+    await interaction.editReply({ content: "تم استلام التكت ✅" });
   }
 
-  // زر الإغلاق
+
+  // ==========================
+  // اغلاق التكت
+  // ==========================
   if (interaction.isButton() && interaction.customId === "close_ticket") {
-    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
-      return interaction.reply({ content: "للإدارة فقط", ephemeral: true });
 
-    await interaction.reply({ content: "تم إغلاق التكت", ephemeral: true });
+    await interaction.deferReply({ ephemeral: true });
+
+    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
+      return interaction.editReply({ content: "للإدارة فقط" });
+
+    await interaction.channel.send("🔒 تم إغلاق التكت");
+    await interaction.editReply({ content: "تم إغلاق التكت ✅" });
   }
 
-  // زر الحذف
-  if (interaction.isButton() && interaction.customId === "delete_ticket") {
-    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
-      return interaction.reply({ content: "للإدارة فقط", ephemeral: true });
 
-    await interaction.reply({ content: "جارٍ حذف التكت...", ephemeral: true });
+  // ==========================
+  // حذف التكت + حفظ الترانسكريبت
+  // ==========================
+  if (interaction.isButton() && interaction.customId === "delete_ticket") {
+
+    await interaction.deferReply({ ephemeral: true });
+
+    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
+      return interaction.editReply({ content: "للإدارة فقط" });
+
+    const channel = interaction.channel;
+
+    let messages = [];
+    let lastId;
+
+    while (true) {
+      const fetched = await channel.messages.fetch({ limit: 100, before: lastId });
+      if (fetched.size === 0) break;
+
+      messages.push(...fetched.values());
+      lastId = fetched.last().id;
+    }
+
+    messages = messages.reverse();
+
+    let transcript = `Transcript for ${channel.name}\n\n`;
+
+    messages.forEach(msg => {
+      transcript += `[${msg.createdAt.toLocaleString()}] ${msg.author.tag}: ${msg.content}\n`;
+    });
+
+    const transcriptChannel = interaction.guild.channels.cache.get(TRANSCRIPT_CHANNEL_ID);
+
+    if (transcriptChannel) {
+      await transcriptChannel.send({
+        content: `📄 ترانسكريبت للتكت: ${channel.name}`,
+        files: [
+          {
+            attachment: Buffer.from(transcript, "utf-8"),
+            name: `${channel.name}-transcript.txt`
+          }
+        ]
+      });
+    }
+
+    await interaction.editReply({ content: "تم حفظ الترانسكريبت 🗂️ سيتم حذف التكت..." });
+
     setTimeout(() => {
-      interaction.channel.delete().catch(() => {});
-    }, 2000);
+      channel.delete().catch(() => {});
+    }, 3000);
   }
 
 });
