@@ -87,7 +87,7 @@ client.on("interactionCreate", async (interaction) => {
       components: [claimRow]
     });
 
-    await interaction.editReply({ content: "تم إنشاء التكت ✅" });
+    await interaction.editReply({ content: "تم إنشاء التكت" });
   }
 
 
@@ -146,7 +146,7 @@ client.on("interactionCreate", async (interaction) => {
       components: [actionRow]
     });
 
-    await interaction.editReply({ content: "تم استلام التكت ✅" });
+    await interaction.editReply({ content: "تم استلام التكت" });
   }
 
 
@@ -161,7 +161,7 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.editReply({ content: "للإدارة فقط" });
 
     await interaction.channel.send("🔒 تم إغلاق التكت");
-    await interaction.editReply({ content: "تم إغلاق التكت ✅" });
+    await interaction.editReply({ content: "تم إغلاق التكت" });
   }
 
 
@@ -200,7 +200,7 @@ client.on("interactionCreate", async (interaction) => {
 
     if (transcriptChannel) {
       await transcriptChannel.send({
-        content: `📄 ترانسكريبت للتكت: ${channel.name}`,
+        content: `: ${channel.name}`,
         files: [
           {
             attachment: Buffer.from(transcript, "utf-8"),
@@ -210,7 +210,7 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    await interaction.editReply({ content: "تم حفظ الترانسكريبت 🗂️ سيتم حذف التكت..." });
+    await interaction.editReply({ content: " سيتم حذف التكت..." });
 
     setTimeout(() => {
       channel.delete().catch(() => {});
