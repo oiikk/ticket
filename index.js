@@ -12,7 +12,7 @@ const {
 const CATEGORY_ID = "1465965687565455474";
 const STAFF_ROLE_ID = "1463087905156366336";
 const CLAIM_CHANNEL_ID = "1475207708910161991";
-const TRANSCRIPT_CHANNEL_ID = "PUT_TRANSCRIPT_CHANNEL_ID_HERE";
+const TRANSCRIPT_CHANNEL_ID = "1476273815502983189";
 const IMAGE_URL = "https://tenor.com/view/hatsune-miku-miku-ew-what-disgusted-gif-15627475628353335525";
 
 const client = new Client({
