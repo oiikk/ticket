@@ -83,7 +83,7 @@ client.on("interactionCreate", async (interaction) => {
     );
 
     await claimChannel.send({
-      content: `new ticket\nالعضو: ${interaction.user}\nالسبب: ${reason}\nالمستلم: لم يتم الاستلام بعد`,
+      content: ` @here new ticket\nالعضو: ${interaction.user}\nالسبب: ${reason}\nالمستلم: لم يتم الاستلام بعد`,
       components: [claimRow]
     });
 
