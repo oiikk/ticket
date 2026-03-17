@@ -65,6 +65,7 @@ client.on("messageCreate", async (message) => {
 
 // ===== التعامل مع التفاعلات =====
 client.on("interactionCreate", async (interaction) => {
+
   // ==========================
   // اختيار سبب التكت
   // ==========================
@@ -90,7 +91,7 @@ client.on("interactionCreate", async (interaction) => {
 
     const claimChannel = interaction.guild.channels.cache.get(CLAIM_CHANNEL_ID);
     await claimChannel.send({
-      content: `@here\nالعضو: ${interaction.user}\nالسبب: ${reason}\nالمستلم: لم يتم الاستلام بعد`,
+      content: `\nالعضو: ${interaction.user}\nالسبب: ${reason}\nالمستلم: لم يتم الاستلام بعد`,
       components: [claimRow]
     });
 
@@ -161,7 +162,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // ==========================
-  // حذف التكت + تحويله لصورة
+  // حذف التكت + حفظ كصورة مع صور الأعضاء
   // ==========================
   if (interaction.isButton() && interaction.customId === "delete_ticket") {
     await interaction.deferReply({ ephemeral: true });
@@ -176,17 +177,17 @@ client.on("interactionCreate", async (interaction) => {
     while (true) {
       const fetched = await channel.messages.fetch({ limit: 100, before: lastId });
       if (fetched.size === 0) break;
-
       messages.push(...fetched.values());
       lastId = fetched.last().id;
     }
 
     messages = messages.reverse();
 
-    // ===== إنشاء الصورة =====
+    // ===== إنشاء الصورة مع الصور =====
     const width = 800;
-    const lineHeight = 35;
+    const lineHeight = 50;
     const padding = 20;
+    const avatarSize = 40;
     const height = messages.length * lineHeight + padding * 2 + 60;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
@@ -195,14 +196,22 @@ client.on("interactionCreate", async (interaction) => {
     ctx.fillStyle = "#2b2d31";
     ctx.fillRect(0, 0, width, height);
 
-    // نصوص الرسائل
+    // نصوص الرسائل مع الصور
     ctx.font = '20px "Cairo"';
     ctx.fillStyle = "#ffffff";
 
     let y = padding + 40;
     for (const msg of messages) {
+      const avatarURL = msg.author.displayAvatarURL({ extension: 'png', size: 64 });
+      try {
+        const avatar = await loadImage(avatarURL);
+        ctx.drawImage(avatar, padding, y - avatarSize + 10, avatarSize, avatarSize);
+      } catch (e) {
+        console.log("Failed to load avatar for", msg.author.tag);
+      }
+
       const text = `[${msg.author.username}]: ${msg.content}`;
-      ctx.fillText(text, padding, y);
+      ctx.fillText(text, padding + avatarSize + 10, y);
       y += lineHeight;
     }
 
@@ -214,7 +223,7 @@ client.on("interactionCreate", async (interaction) => {
       await transcriptChannel.send({ files: [attachment] });
     }
 
-    await interaction.editReply({ content: "تم حفظ التكت كصورة وسيتم حذفه..." });
+    await interaction.editReply({ content: "زوط." });
 
     setTimeout(() => {
       channel.delete().catch(() => {});
