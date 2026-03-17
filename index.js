@@ -30,7 +30,7 @@ const TRANSCRIPT_CHANNEL_ID = "1476273815502983189";
 const IMAGE_URL = "https://tenor.com/view/hatsune-miku-miku-ew-what-disgusted-gif-15627475628353335525";
 
 // ===== تسجيل الخط العربي =====
-registerFont(path.join(__dirname, 'fonts/Amiri-Regular.ttf'), { family: 'Amiri' });
+registerFont(path.join(__dirname, 'fonts/Cairo-VariableFont_slnt,wght.ttf'), { family: 'Cairo' });
 
 // ===== حالة البوت ستريمنج =====
 client.once("ready", () => {
