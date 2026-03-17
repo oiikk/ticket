@@ -33,7 +33,7 @@ client.once("ready", () => {
       type: 1,
       url: "https://www.twitch.tv/discord"
     }],
-    status: "online"
+    status: "dnd"
   });
 });
 
