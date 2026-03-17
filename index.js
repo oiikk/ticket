@@ -65,10 +65,6 @@ client.on("messageCreate", async (message) => {
 
 // ===== التعامل مع التفاعلات =====
 client.on("interactionCreate", async (interaction) => {
-
-  // ==========================
-  // اختيار سبب التكت
-  // ==========================
   if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") {
     await interaction.deferReply({ ephemeral: true });
     const reason = interaction.values[0];
@@ -98,9 +94,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم إنشاء التكت" });
   }
 
-  // ==========================
-  // استلام التكت
-  // ==========================
   if (interaction.isButton() && interaction.customId.startsWith("claim_")) {
     await interaction.deferReply({ ephemeral: true });
 
@@ -148,9 +141,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم استلام التكت" });
   }
 
-  // ==========================
-  // اغلاق التكت
-  // ==========================
   if (interaction.isButton() && interaction.customId === "close_ticket") {
     await interaction.deferReply({ ephemeral: true });
 
@@ -161,9 +151,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم إغلاق التكت" });
   }
 
-  // ==========================
-  // حذف التكت + حفظ كصورة مع صور الأعضاء
-  // ==========================
   if (interaction.isButton() && interaction.customId === "delete_ticket") {
     await interaction.deferReply({ ephemeral: true });
 
@@ -177,41 +164,47 @@ client.on("interactionCreate", async (interaction) => {
     while (true) {
       const fetched = await channel.messages.fetch({ limit: 100, before: lastId });
       if (fetched.size === 0) break;
+
       messages.push(...fetched.values());
       lastId = fetched.last().id;
     }
 
     messages = messages.reverse();
 
-    // ===== إنشاء الصورة مع الصور =====
+    // ===== إنشاء الصورة مع صور دائرية =====
     const width = 800;
-    const lineHeight = 50;
+    const lineHeight = 60;
     const padding = 20;
-    const avatarSize = 40;
     const height = messages.length * lineHeight + padding * 2 + 60;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
 
-    // خلفية
     ctx.fillStyle = "#2b2d31";
     ctx.fillRect(0, 0, width, height);
 
-    // نصوص الرسائل مع الصور
     ctx.font = '20px "Cairo"';
     ctx.fillStyle = "#ffffff";
 
     let y = padding + 40;
     for (const msg of messages) {
-      const avatarURL = msg.author.displayAvatarURL({ extension: 'png', size: 64 });
+      // صورة المستخدم
       try {
-        const avatar = await loadImage(avatarURL);
-        ctx.drawImage(avatar, padding, y - avatarSize + 10, avatarSize, avatarSize);
+        const avatar = await loadImage(msg.author.displayAvatarURL({ extension: "png", size: 64 }));
+        const radius = 25;
+        const x = padding + radius;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y - 10 + radius, radius, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(avatar, padding, y - 10, radius * 2, radius * 2);
+        ctx.restore();
       } catch (e) {
-        console.log("Failed to load avatar for", msg.author.tag);
+        console.log("خطأ في تحميل صورة العضو:", e.message);
       }
 
-      const text = `[${msg.author.username}]: ${msg.content}`;
-      ctx.fillText(text, padding + avatarSize + 10, y);
+      // نص الرسالة
+      ctx.fillText(`[${msg.author.username}]: ${msg.content}`, padding + 60, y + 15);
       y += lineHeight;
     }
 
@@ -223,7 +216,7 @@ client.on("interactionCreate", async (interaction) => {
       await transcriptChannel.send({ files: [attachment] });
     }
 
-    await interaction.editReply({ content: "زوط." });
+    await interaction.editReply({ content: "زوططططططط..." });
 
     setTimeout(() => {
       channel.delete().catch(() => {});
