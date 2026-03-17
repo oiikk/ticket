@@ -6,105 +6,44 @@ const {
   ButtonBuilder,
   ButtonStyle,
   PermissionsBitField,
-  ChannelType
+  ChannelType,
+  AttachmentBuilder
 } = require("discord.js");
 
-const { createCanvas, loadImage } = require("canvas");
-const moment = require("moment");
+const { createCanvas, loadImage, registerFont } = require("canvas");
+const path = require("path");
 
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
+  ]
+});
+
+// ===== إعدادات التكت =====
 const CATEGORY_ID = "1465965687565455474";
 const STAFF_ROLE_ID = "1463087905156366336";
 const CLAIM_CHANNEL_ID = "1475207708910161991";
 const TRANSCRIPT_CHANNEL_ID = "1476273815502983189";
 const IMAGE_URL = "https://tenor.com/view/hatsune-miku-miku-ew-what-disgusted-gif-15627475628353335525";
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
-});
+// ===== تسجيل الخط العربي =====
+registerFont(path.join(__dirname, 'fonts/Amiri-Regular.ttf'), { family: 'Amiri' });
 
+// ===== حالة البوت ستريمنج =====
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
-
   client.user.setPresence({
-    activities: [{
-      name: " ",
-      type: 1,
-      url: "https://www.twitch.tv/discord"
-    }],
+    activities: [{ name: " ", type: 1, url: "https://www.twitch.tv/discord" }],
     status: "dnd"
   });
 });
 
-// 🎨 دالة الترانسكريبت صورة
-async function generateTranscriptImage(messages) {
-  const width = 900;
-  const lineHeight = 70;
-  const height = messages.length * lineHeight + 60;
-
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "#313338";
-  ctx.fillRect(0, 0, width, height);
-
-  let y = 40;
-
-  for (const msg of messages) {
-    const avatarURL = msg.author.displayAvatarURL({ extension: "png" });
-
-    let avatar;
-    try {
-      avatar = await loadImage(avatarURL);
-    } catch {
-      avatar = null;
-    }
-
-    if (avatar) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(40, y, 25, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(avatar, 15, y - 25, 50, 50);
-      ctx.restore();
-    }
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px Arial";
-    ctx.fillText(msg.author.tag, 80, y - 10);
-
-    ctx.fillStyle = "#b5bac1";
-    ctx.font = "14px Arial";
-    const time = moment(msg.createdAt).format("HH:mm");
-    ctx.fillText(time, 80 + ctx.measureText(msg.author.tag).width + 10, y - 10);
-
-    ctx.fillStyle = "#dbdee1";
-    ctx.font = "16px Arial";
-
-    let content = msg.content || "";
-
-    if (msg.attachments.size > 0) {
-      msg.attachments.forEach(att => {
-        content += ` ${att.url}`;
-      });
-    }
-
-    ctx.fillText(content, 80, y + 15);
-
-    y += lineHeight;
-  }
-
-  return canvas.toBuffer();
-}
-
-// ارسال القائمة
+// ===== إرسال قائمة التكت =====
 client.on("messageCreate", async (message) => {
   if (message.content === "!ticket") {
-
     const menu = new StringSelectMenuBuilder()
       .setCustomId("ticket_select")
       .setPlaceholder("اختر السبب")
@@ -124,13 +63,13 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-// التفاعلات
+// ===== التعامل مع التفاعلات =====
 client.on("interactionCreate", async (interaction) => {
-
+  // ==========================
+  // اختيار سبب التكت
+  // ==========================
   if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") {
-
     await interaction.deferReply({ ephemeral: true });
-
     const reason = interaction.values[0];
 
     const channel = await interaction.guild.channels.create({
@@ -142,8 +81,6 @@ client.on("interactionCreate", async (interaction) => {
       ]
     });
 
-    const claimChannel = interaction.guild.channels.cache.get(CLAIM_CHANNEL_ID);
-
     const claimRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`claim_${channel.id}_${interaction.user.id}_${reason}`)
@@ -151,16 +88,19 @@ client.on("interactionCreate", async (interaction) => {
         .setStyle(ButtonStyle.Secondary)
     );
 
+    const claimChannel = interaction.guild.channels.cache.get(CLAIM_CHANNEL_ID);
     await claimChannel.send({
-      content: ` @here new ticket\nالعضو: ${interaction.user}\nالسبب: ${reason}\nالمستلم: لم يتم الاستلام بعد`,
+      content: `@here\nالعضو: ${interaction.user}\nالسبب: ${reason}\nالمستلم: لم يتم الاستلام بعد`,
       components: [claimRow]
     });
 
     await interaction.editReply({ content: "تم إنشاء التكت" });
   }
 
+  // ==========================
+  // استلام التكت
+  // ==========================
   if (interaction.isButton() && interaction.customId.startsWith("claim_")) {
-
     await interaction.deferReply({ ephemeral: true });
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
@@ -195,15 +135,8 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.message.edit({ content: updatedContent, components: [disabledRow] });
 
     const actionRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("close_ticket")
-        .setLabel("اغلاق التكت")
-        .setStyle(ButtonStyle.Secondary),
-
-      new ButtonBuilder()
-        .setCustomId("delete_ticket")
-        .setLabel("حذف التكت")
-        .setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId("close_ticket").setLabel("اغلاق التكت").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId("delete_ticket").setLabel("حذف التكت").setStyle(ButtonStyle.Secondary)
     );
 
     await ticketChannel.send({
@@ -214,8 +147,10 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم استلام التكت" });
   }
 
+  // ==========================
+  // اغلاق التكت
+  // ==========================
   if (interaction.isButton() && interaction.customId === "close_ticket") {
-
     await interaction.deferReply({ ephemeral: true });
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
@@ -225,15 +160,16 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم إغلاق التكت" });
   }
 
+  // ==========================
+  // حذف التكت + تحويله لصورة
+  // ==========================
   if (interaction.isButton() && interaction.customId === "delete_ticket") {
-
     await interaction.deferReply({ ephemeral: true });
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
       return interaction.editReply({ content: "للإدارة فقط" });
 
     const channel = interaction.channel;
-
     let messages = [];
     let lastId;
 
@@ -247,30 +183,43 @@ client.on("interactionCreate", async (interaction) => {
 
     messages = messages.reverse();
 
-    // ⭐ ترانسكريبت صورة
-    const buffer = await generateTranscriptImage(messages);
+    // ===== إنشاء الصورة =====
+    const width = 800;
+    const lineHeight = 35;
+    const padding = 20;
+    const height = messages.length * lineHeight + padding * 2 + 60;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
 
-    const transcriptChannel = interaction.guild.channels.cache.get(TRANSCRIPT_CHANNEL_ID);
+    // خلفية
+    ctx.fillStyle = "#2b2d31";
+    ctx.fillRect(0, 0, width, height);
 
-    if (transcriptChannel) {
-      await transcriptChannel.send({
-        content: `📄 ${channel.name}`,
-        files: [
-          {
-            attachment: buffer,
-            name: `${channel.name}.png`
-          }
-        ]
-      });
+    // نصوص الرسائل
+    ctx.font = '20px "Amiri"';
+    ctx.fillStyle = "#ffffff";
+
+    let y = padding + 40;
+    for (const msg of messages) {
+      const text = `[${msg.author.username}]: ${msg.content}`;
+      ctx.fillText(text, padding, y);
+      y += lineHeight;
     }
 
-    await interaction.editReply({ content: " سيتم حذف التكت..." });
+    const buffer = canvas.toBuffer("image/png");
+    const attachment = new AttachmentBuilder(buffer, { name: `${channel.name}-transcript.png` });
+
+    const transcriptChannel = interaction.guild.channels.cache.get(TRANSCRIPT_CHANNEL_ID);
+    if (transcriptChannel) {
+      await transcriptChannel.send({ files: [attachment] });
+    }
+
+    await interaction.editReply({ content: "تم حفظ التكت كصورة وسيتم حذفه..." });
 
     setTimeout(() => {
       channel.delete().catch(() => {});
     }, 3000);
   }
-
 });
 
 client.login(process.env.TOKEN);
