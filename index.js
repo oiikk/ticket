@@ -29,7 +29,7 @@ client.once("ready", () => {
   // ⭐ إضافة حالة Streaming فقط
   client.user.setPresence({
     activities: [{
-      name: "tickets 🎫",
+      name: " ",
       type: 1,
       url: "https://www.twitch.tv/discord"
     }],
