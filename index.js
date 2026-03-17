@@ -25,8 +25,17 @@ const client = new Client({
 
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
-});
 
+  // ⭐ إضافة حالة Streaming فقط
+  client.user.setPresence({
+    activities: [{
+      name: "tickets 🎫",
+      type: 1,
+      url: "https://www.twitch.tv/discord"
+    }],
+    status: "online"
+  });
+});
 
 // ارسال القائمة
 client.on("messageCreate", async (message) => {
@@ -51,7 +60,6 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-
 // التفاعلات
 client.on("interactionCreate", async (interaction) => {
 
@@ -60,7 +68,7 @@ client.on("interactionCreate", async (interaction) => {
   // ==========================
   if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") {
 
-    await interaction.deferReply({ ephemeral: true }); // تفكير
+    await interaction.deferReply({ ephemeral: true });
 
     const reason = interaction.values[0];
 
@@ -90,13 +98,12 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم إنشاء التكت" });
   }
 
-
   // ==========================
   // استلام التكت
   // ==========================
   if (interaction.isButton() && interaction.customId.startsWith("claim_")) {
 
-    await interaction.deferReply({ ephemeral: true }); // تفكير
+    await interaction.deferReply({ ephemeral: true });
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID))
       return interaction.editReply({ content: "للإدارة فقط" });
@@ -149,7 +156,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم استلام التكت" });
   }
 
-
   // ==========================
   // اغلاق التكت
   // ==========================
@@ -163,7 +169,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.channel.send("🔒 تم إغلاق التكت");
     await interaction.editReply({ content: "تم إغلاق التكت" });
   }
-
 
   // ==========================
   // حذف التكت + حفظ الترانسكريبت
