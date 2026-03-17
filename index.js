@@ -9,6 +9,9 @@ const {
   ChannelType
 } = require("discord.js");
 
+const { createCanvas, loadImage } = require("canvas");
+const moment = require("moment");
+
 const CATEGORY_ID = "1465965687565455474";
 const STAFF_ROLE_ID = "1463087905156366336";
 const CLAIM_CHANNEL_ID = "1475207708910161991";
@@ -26,7 +29,6 @@ const client = new Client({
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 
-  // ⭐ إضافة حالة Streaming فقط
   client.user.setPresence({
     activities: [{
       name: " ",
@@ -36,6 +38,68 @@ client.once("ready", () => {
     status: "dnd"
   });
 });
+
+// 🎨 دالة الترانسكريبت صورة
+async function generateTranscriptImage(messages) {
+  const width = 900;
+  const lineHeight = 70;
+  const height = messages.length * lineHeight + 60;
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#313338";
+  ctx.fillRect(0, 0, width, height);
+
+  let y = 40;
+
+  for (const msg of messages) {
+    const avatarURL = msg.author.displayAvatarURL({ extension: "png" });
+
+    let avatar;
+    try {
+      avatar = await loadImage(avatarURL);
+    } catch {
+      avatar = null;
+    }
+
+    if (avatar) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(40, y, 25, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatar, 15, y - 25, 50, 50);
+      ctx.restore();
+    }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px Arial";
+    ctx.fillText(msg.author.tag, 80, y - 10);
+
+    ctx.fillStyle = "#b5bac1";
+    ctx.font = "14px Arial";
+    const time = moment(msg.createdAt).format("HH:mm");
+    ctx.fillText(time, 80 + ctx.measureText(msg.author.tag).width + 10, y - 10);
+
+    ctx.fillStyle = "#dbdee1";
+    ctx.font = "16px Arial";
+
+    let content = msg.content || "";
+
+    if (msg.attachments.size > 0) {
+      msg.attachments.forEach(att => {
+        content += ` ${att.url}`;
+      });
+    }
+
+    ctx.fillText(content, 80, y + 15);
+
+    y += lineHeight;
+  }
+
+  return canvas.toBuffer();
+}
 
 // ارسال القائمة
 client.on("messageCreate", async (message) => {
@@ -63,9 +127,6 @@ client.on("messageCreate", async (message) => {
 // التفاعلات
 client.on("interactionCreate", async (interaction) => {
 
-  // ==========================
-  // اختيار سبب التكت
-  // ==========================
   if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") {
 
     await interaction.deferReply({ ephemeral: true });
@@ -98,9 +159,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم إنشاء التكت" });
   }
 
-  // ==========================
-  // استلام التكت
-  // ==========================
   if (interaction.isButton() && interaction.customId.startsWith("claim_")) {
 
     await interaction.deferReply({ ephemeral: true });
@@ -156,9 +214,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم استلام التكت" });
   }
 
-  // ==========================
-  // اغلاق التكت
-  // ==========================
   if (interaction.isButton() && interaction.customId === "close_ticket") {
 
     await interaction.deferReply({ ephemeral: true });
@@ -170,9 +225,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.editReply({ content: "تم إغلاق التكت" });
   }
 
-  // ==========================
-  // حذف التكت + حفظ الترانسكريبت
-  // ==========================
   if (interaction.isButton() && interaction.customId === "delete_ticket") {
 
     await interaction.deferReply({ ephemeral: true });
@@ -195,21 +247,18 @@ client.on("interactionCreate", async (interaction) => {
 
     messages = messages.reverse();
 
-    let transcript = `Transcript for ${channel.name}\n\n`;
-
-    messages.forEach(msg => {
-      transcript += `[${msg.createdAt.toLocaleString()}] ${msg.author.tag}: ${msg.content}\n`;
-    });
+    // ⭐ ترانسكريبت صورة
+    const buffer = await generateTranscriptImage(messages);
 
     const transcriptChannel = interaction.guild.channels.cache.get(TRANSCRIPT_CHANNEL_ID);
 
     if (transcriptChannel) {
       await transcriptChannel.send({
-        content: `: ${channel.name}`,
+        content: `📄 ${channel.name}`,
         files: [
           {
-            attachment: Buffer.from(transcript, "utf-8"),
-            name: `${channel.name}-transcript.txt`
+            attachment: buffer,
+            name: `${channel.name}.png`
           }
         ]
       });
