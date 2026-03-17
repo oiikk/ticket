@@ -196,7 +196,7 @@ client.on("interactionCreate", async (interaction) => {
     ctx.fillRect(0, 0, width, height);
 
     // نصوص الرسائل
-    ctx.font = '20px "Amiri"';
+    ctx.font = '20px "Cairo"';
     ctx.fillStyle = "#ffffff";
 
     let y = padding + 40;
